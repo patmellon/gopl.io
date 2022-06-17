@@ -14,11 +14,17 @@ import (
 	"os"
 )
 
+type FileData struct {
+	name   string
+	counts map[string]int
+}
+
 func main() {
-	counts := make(map[string]int)
+	totalCounts := make(map[string]*FileData)
+
 	files := os.Args[1:]
 	if len(files) == 0 {
-		countLines(os.Stdin, counts)
+		countLines(os.Stdin, totalCounts, files[0])
 	} else {
 		for _, arg := range files {
 			f, err := os.Open(arg)
@@ -26,23 +32,43 @@ func main() {
 				fmt.Fprintf(os.Stderr, "dup2: %v\n", err)
 				continue
 			}
-			countLines(f, counts)
+			countLines(f, totalCounts, arg)
 			f.Close()
 		}
 	}
-	for line, n := range counts {
-		if n > 1 {
-			fmt.Printf("%d\t%s\n", n, line)
+
+	for _, n := range totalCounts {
+		for word, count := range n.counts {
+			if count > 1 {
+				fmt.Printf("%d\t%s\n", count, word+n.name)
+			}
 		}
+
 	}
 }
 
-func countLines(f *os.File, counts map[string]int) {
+func countLines(f *os.File, totalCounts map[string]*FileData, filename string) {
+	fileData := new(FileData)
+	fileData.name = filename
+	fileData.counts = make(map[string]int)
+
 	input := bufio.NewScanner(f)
+
 	for input.Scan() {
-		counts[input.Text()]++
+		fileData.counts[input.Text()]++
 	}
+
+	totalCounts[filename] = fileData
 	// NOTE: ignoring potential errors from input.Err()
 }
 
+/*
+	a := new(FileData)
+	a.name = "test"
+	a.counts = make(map[string]int)
+
+	a.counts["k2"] = 13
+
+	totalCounts["hello"] = a
+*/
 //!-
